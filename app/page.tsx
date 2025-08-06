@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { EntesTable } from "@/components/entes-table"
 import { UploadModal } from "@/components/upload-modal"
@@ -8,46 +8,33 @@ import { EnteProfile } from "@/components/ente-profile"
 import { DashboardStats } from "@/components/dashboard-stats"
 import { FilterSidebar } from "@/components/filter-sidebar"
 import { BrazilMapRealistic } from "@/components/brazil-map-realistic"
-import { mockEntes } from "@/lib/mock-data"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useEntesData } from "@/hooks/use-entes-data"
 import type { Ente } from "@/lib/types"
 
 export default function Dashboard() {
   const [selectedEnte, setSelectedEnte] = useState<Ente | null>(null)
   const [showUpload, setShowUpload] = useState(false)
-  const [entes, setEntes] = useState(mockEntes)
-  const [filteredEntes, setFilteredEntes] = useState(mockEntes)
+  const [filteredEntes, setFilteredEntes] = useState<Ente[]>([])
   const [activeTab, setActiveTab] = useState("dashboard")
+  
+  const { entes, loading, error, updateData, hasLocalData } = useEntesData()
 
-  useEffect(() => {
-    // Carregar dados salvos no localStorage ao inicializar
-    const savedData = localStorage.getItem("entesData")
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData)
-        setEntes(parsedData)
-        setFilteredEntes(parsedData)
-      } catch (error) {
-        console.error("Erro ao carregar dados salvos:", error)
-      }
-    }
-
-    // Escutar eventos de atualização de dados
-    const handleDataUpdate = (event: CustomEvent) => {
-      setEntes(event.detail)
-      setFilteredEntes(event.detail)
-    }
-
-    window.addEventListener("dataUpdated", handleDataUpdate as EventListener)
-
-    return () => {
-      window.removeEventListener("dataUpdated", handleDataUpdate as EventListener)
-    }
-  }, [])
+  // Atualizar filteredEntes quando entes mudar
+  useState(() => {
+    setFilteredEntes(entes)
+  })
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader onUpload={() => setShowUpload(true)} />
+      <DashboardHeader 
+        onUpload={() => setShowUpload(true)} 
+        hasLocalData={hasLocalData}
+        onResetData={() => {
+          localStorage.removeItem("entesData")
+          window.location.reload()
+        }}
+      />
 
       {selectedEnte ? (
         <div className="p-6">
@@ -78,7 +65,7 @@ export default function Dashboard() {
         </Tabs>
       )}
 
-      {showUpload && <UploadModal onClose={() => setShowUpload(false)} />}
+      {showUpload && <UploadModal onClose={() => setShowUpload(false)} onDataUpdate={updateData} />}
     </div>
   )
 }

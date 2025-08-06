@@ -8,95 +8,16 @@ import { Button } from "@/components/ui/button"
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import * as XLSX from "xlsx"
+import type { Ente } from "@/lib/types"
 
 interface UploadModalProps {
   onClose: () => void
+  onDataUpdate?: (data: Ente[]) => void
 }
 
-interface Ente {
-  ente: string
-  enteSemAcento: string
-  esfera: string
-  uf: string
-  codigoIBGE: string
-  populacao: number
-  regime: string
-  receitaCorrenteLiquida2024: number
-  dividaConsolidada2024: number
-  indice1Endividamento: number
-  indice1Nota: string
-  indice2PoupancaCorrente: number
-  indice2Nota: string
-  indice3Liquidez: number
-  indice3Nota: string
-  notaGeralCAPAG2025: string
-  dividaPrecatoriosSICONFI2024: number
-  estoquePrecRCL: number
-  estoquePrecDC: number
-  dividaPrecatoriosSICONFI2025: number
-  dividaMapaAnual2024: number
-  montanteExpedido2025: number
-  reguaParcelamento2025: number
-  qtdProcessosPendentes: number
-  atualizacao: string
-  fazAcordo: boolean
-  ticketMedioEstimado: number
-  historicoRCL: {
-    "2023": number
-    "2022": number
-    "2021": number
-    "2020": number
-    "2019": number
-  }
-  historicoDC: {
-    "2023": number
-    "2022": number
-    "2021": number
-    "2020": number
-    "2019": number
-  }
-  historicoPagamentos: {
-    "2024": number
-    "2023": number
-    "2022": number
-    "2021": number
-    "2020": number
-    "2019": number
-  }
-  limitesParcelamento: {
-    "2024": number
-    "2023": number
-    "2022": number
-    "2021": number
-    "2020": number
-  }
-  dividasMapaAnual: {
-    "2024": number
-    "2023": number
-    "2022": number
-    "2021": number
-    "2020": number
-    "2019": number
-  }
-  ultimoEdital: string
-  linkEdital: string
-  desagio: string
-  criterio: string
-  dataInicio: string
-  dataFechamento: string
-  valorDestinado: number
-  historicoExpedicoes: {
-    "2019": number // BJ - Expedição 2019
-    "2020": number // BK - Expedição 2020
-    "2021": number // BL - Expedição 2021
-    "2022": number // BM - Expedição 2022
-    "2023": number // BN - Expedição 2023
-    "2024": number // V - Expedição 2024
-  }
-  statusTeses: string
-}
 
-export function UploadModal({ onClose }: UploadModalProps) {
+
+export function UploadModal({ onClose, onDataUpdate }: UploadModalProps) {
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "processing" | "success" | "error">("idle")
   const [progress, setProgress] = useState(0)
   const [fileName, setFileName] = useState("")
@@ -128,8 +49,10 @@ export function UploadModal({ onClose }: UploadModalProps) {
       // Salvar no localStorage para persistir os dados
       localStorage.setItem("entesData", JSON.stringify(processedData))
 
-      // Disparar evento customizado para atualizar o dashboard
-      window.dispatchEvent(new CustomEvent("dataUpdated", { detail: processedData }))
+      // Atualizar dados via callback se fornecido
+      if (onDataUpdate) {
+        onDataUpdate(processedData)
+      }
 
       setUploadStatus("success")
     } catch (error) {
@@ -160,15 +83,18 @@ export function UploadModal({ onClose }: UploadModalProps) {
         if (enteName.toLowerCase().includes("total")) return null // Linhas de total
         if (enteName.toLowerCase().includes("soma")) return null // Linhas de soma
 
+        const esfera = String(row[2] || "M").trim() as "M" | "E" | "D"
+        const regime = String(row[6] || "Ordinário").trim() as "Ordinário" | "Especial"
+        
         return {
           // Colunas A-G: Dados básicos
           ente: enteName,
           enteSemAcento: String(row[1] || "").trim(),
-          esfera: String(row[2] || "M").trim(),
+          esfera,
           uf: String(row[3] || "").trim(),
           codigoIBGE: String(row[4] || "").trim(),
           populacao: Number(row[5]) || 0,
-          regime: String(row[6] || "Ordinário").trim(),
+          regime,
 
           // Colunas H-I: Dados financeiros 2024
           receitaCorrenteLiquida2024: Number(row[7]) || 0,
@@ -263,7 +189,7 @@ export function UploadModal({ onClose }: UploadModalProps) {
           },
           // Status das Teses
           statusTeses: String(row[66] || "INDEFINIDO").trim(),
-        }
+        } as Ente
       })
       .filter((ente): ente is Ente => ente !== null)
 

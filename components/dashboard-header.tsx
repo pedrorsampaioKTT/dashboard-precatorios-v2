@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input"
 
 interface DashboardHeaderProps {
   onUpload: () => void
+  hasLocalData?: boolean
+  onResetData?: () => void
 }
 
-export function DashboardHeader({ onUpload }: DashboardHeaderProps) {
+export function DashboardHeader({ onUpload, hasLocalData, onResetData }: DashboardHeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -27,6 +29,13 @@ export function DashboardHeader({ onUpload }: DashboardHeaderProps) {
             <Download className="h-4 w-4" />
             Exportar
           </Button>
+
+          {hasLocalData && onResetData && (
+            <Button variant="outline" onClick={onResetData} className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50">
+              <Download className="h-4 w-4" />
+              Voltar aos Dados Originais
+            </Button>
+          )}
 
           <Button onClick={onUpload} className="gap-2">
             <Upload className="h-4 w-4" />
